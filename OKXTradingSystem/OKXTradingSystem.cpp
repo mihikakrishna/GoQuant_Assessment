@@ -77,8 +77,8 @@ void OKXTradingSystem::modifyOrder(const std::string& orderID, double newPrice) 
     // Add more code 
 }
 
-void OKXTradingSystem::getOrderBook(const std::string& symbol) {
-    std::string url = "https://www.okx.com/api/v5/market/books?symbol=" + symbol;
+void OKXTradingSystem::getOrderBook(const std::string& sprdId) {
+    std::string url = "https://www.okx.com/api/v5/market/books?symbol=" + sprdId;
     std::string response = this->sendRequest(url);
     // Add more code 
 }

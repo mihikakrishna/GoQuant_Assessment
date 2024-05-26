@@ -1,5 +1,6 @@
 #include "OKXTradingSystem.h"
 #include <curl/curl.h>
+#include <nlohmann/json.hpp>
 #include <iostream>
 
 OKXTradingSystem::OKXTradingSystem(const std::string& api_key, const std::string& secret_key, const std::string& passphrase)
@@ -58,7 +59,7 @@ void OKXTradingSystem::placeOrder(const std::string& instId, const std::string& 
                            "\"ordType\":\"" + ordType + "\","
                            "\"px\":\"" + px + "\","
                            "\"sz\":\"" + sz + "\"}";
-                           
+
     std::string response = this->sendRequest(url, postData, "POST");
 
     auto jsonResponse = nlohmann::json::parse(response);
@@ -84,9 +85,9 @@ void OKXTradingSystem::cancelOrder(const std::string& ordId, const std::string& 
     // Add more code 
 }
 
-void OKXTradingSystem::modifyOrder(const std::string& orderID, double newPrice) {
+void OKXTradingSystem::modifyOrder(const std::string& ordId, double newPrice) {
     std::string url = "https://www.okx.com/api/v5/trade/amend-order";
-    std::string postData = "order_id=" + orderID + "&new_price=" + std::to_string(newPrice);
+    std::string postData = "order_id=" + ordId + "&new_price=" + std::to_string(newPrice);
     std::string response = this->sendRequest(url, postData, "POST");
     // Add more code 
 }
@@ -104,7 +105,7 @@ void OKXTradingSystem::getCurrentPositions(const std::string& symbol) {
 }
 
 int main() {
-    OKXTradingSystem system("api_key", "secret_key", "passphrase");
+    OKXTradingSystem system("7535dae3-3a6a-4975-919b-626e01e439a6", "206A03C0CA769FD905C67D75501DD1E1", "GoQuantisawesome1!");
     // Add more code 
     return 0;
 }

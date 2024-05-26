@@ -4,7 +4,12 @@
 This document explains how to compile and run the OKXTradingSystem application, which requires the cURL library for HTTP communications.
 
 ## Prerequisites
-Before compiling and running the OKXTradingSystem, ensure you have `g++` and `libcurl4-openssl-dev` installed on your system. If not, you can install them using the following commands:
+Before compiling and running the OKXTradingSystem, ensure the following packages are installed:
+
+### Dependencies
+- **g++**: The GNU C++ Compiler
+- **libcurl4-openssl-dev**: Provides development resources for libcurl.
+- **nlohmann-json3-dev**: Provides the nlohmann JSON library for C++.
 
 ```bash
 sudo apt update

@@ -76,9 +76,10 @@ void OKXTradingSystem::placeOrder(const std::string& instId, const std::string& 
 }
 
 
-void OKXTradingSystem::cancelOrder(const std::string& orderID) {
+void OKXTradingSystem::cancelOrder(const std::string& ordId, const std::string& instId) {
     std::string url = "https://www.okx.com/api/v5/trade/cancel-order";
-    std::string postData = "order_id=" + orderID;
+    std::string postData = "{\"ordId\":\"" + ordId + "\","
+                            "\"instId\":\"" + instId + "\"}";
     std::string response = this->sendRequest(url, postData, "POST");
     // Add more code 
 }

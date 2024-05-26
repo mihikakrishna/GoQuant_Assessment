@@ -58,8 +58,21 @@ void OKXTradingSystem::placeOrder(const std::string& instId, const std::string& 
                            "\"ordType\":\"" + ordType + "\","
                            "\"px\":\"" + px + "\","
                            "\"sz\":\"" + sz + "\"}";
+                           
     std::string response = this->sendRequest(url, postData, "POST");
-    // Add more code 
+
+    auto jsonResponse = nlohmann::json::parse(response);
+
+    std::string sCode = jsonResponse["sCode"];
+    if (sCode != "0") {
+        std::string sMsg = jsonResponse["sMsg"];
+
+        std::cerr << "Error placing order: " << sMsg << std::endl;
+        throw std::runtime_error("Error placing order: " + sMsg);
+    } else {
+        std::string ordId = jsonResponse["ordId"];
+        std::cout << "Order placed successfully, Order ID: " << ordId << std::endl;
+    }
 }
 
 

@@ -9,7 +9,7 @@ public:
     void placeOrder(const std::string& instId, const std::string& tdMode, const std::string& clOrdId,
                     const std::string& side, const std::string& ordType, const std::string& px,
                     const std::string& sz);
-    void cancelOrder(const std::string& orderID);
+    void cancelOrder(const std::string& ordId, const std::string& instId);
     void modifyOrder(const std::string& orderID, double newPrice);
     void getOrderBook(const std::string& symbol);
     void getCurrentPositions(const std::string& symbol);

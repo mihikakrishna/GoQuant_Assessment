@@ -1,5 +1,6 @@
 #include "OKXTradingSystem.h"
 #include "CryptoUtilities.h"
+#include "NetworkUtilities.h"
 #include <curl/curl.h>
 #include <nlohmann/json.hpp>
 #include <iostream>
@@ -11,87 +12,6 @@
 
 OKXTradingSystem::OKXTradingSystem(const std::string& api_key, const std::string& secret_key, const std::string& passphrase)
 : api_key(api_key), secret_key(secret_key), passphrase(passphrase) {}
-
-size_t OKXTradingSystem::WriteCallback(void *contents, size_t size, size_t nmemb, void *userp) {
-    ((std::string*)userp)->append((char*)contents, size * nmemb);
-    return size * nmemb;
-}
-
-std::string get_iso8601_timestamp() {
-    auto now = std::chrono::system_clock::now();
-    auto nowAsTimeT = std::chrono::system_clock::to_time_t(now);
-    auto msPart = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;
-    std::stringstream dateTimeStream;
-    dateTimeStream << std::put_time(gmtime(&nowAsTimeT), "%Y-%m-%dT%H:%M:%S");
-    dateTimeStream << '.' << std::setfill('0') << std::setw(3) << msPart.count() << 'Z';
-    return dateTimeStream.str();
-}
-
-std::string cleanHeader(const std::string& header) {
-    std::string cleaned = header;
-    cleaned.erase(std::remove(cleaned.begin(), cleaned.end(), '\n'), cleaned.end());
-    cleaned.erase(std::remove(cleaned.begin(), cleaned.end(), '\r'), cleaned.end());
-    return cleaned;
-}
-
-std::string OKXTradingSystem::sendRequest(const std::string& url, const std::string& postData, const std::string& method) {
-    CURL *curl;
-    CURLcode res;
-    std::string readBuffer;
-
-    std::string isoString = get_iso8601_timestamp();
-    std::string requestPath = url.substr(url.find("/api/v5")); // Extract path from URL
-    std::string preHash = isoString + method + requestPath + postData;
-    std::string signature = hmac_sha256(preHash, secret_key);
-
-    std::cout << "Signature: " << signature << std::endl;
-    std::cout << "Generated Timestamp: " << isoString << std::endl;
-
-    curl = curl_easy_init();
-    if (curl) {
-        curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-
-        if (method == "POST") {
-            curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
-            curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "POST");
-        } else if (method == "GET") {
-            curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "GET");
-        }
-
-        struct curl_slist *headers = NULL;
-        headers = curl_slist_append(headers, "accept: application/json");
-        headers = curl_slist_append(headers, "Content-Type: application/json");
-        headers = curl_slist_append(headers, "x-simulated-trading: 1");
-        headers = curl_slist_append(headers, ("OK-ACCESS-KEY: " + cleanHeader(api_key)).c_str());
-        headers = curl_slist_append(headers, ("OK-ACCESS-SIGN: " + cleanHeader(signature)).c_str());
-        headers = curl_slist_append(headers, ("OK-ACCESS-TIMESTAMP: " + cleanHeader(isoString)).c_str());
-        headers = curl_slist_append(headers, ("OK-ACCESS-PASSPHRASE: " + cleanHeader(passphrase)).c_str());
-        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-        curl_easy_setopt(curl, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
-
-        struct curl_slist *temp = headers;
-        while (temp != NULL) {
-            std::cout << "Final Header: " << temp->data << std::endl;
-            temp = temp->next;
-        }
-
-
-        res = curl_easy_perform(curl);
-
-        if (res != CURLE_OK) {
-            std::cerr << "curl_easy_perform() failed: " << curl_easy_strerror(res) << std::endl;
-        }
-
-        curl_slist_free_all(headers);
-        curl_easy_cleanup(curl);
-    } else {
-        std::cerr << "Failed to initialize curl" << std::endl;
-    }
-
-    return readBuffer;
-}
 
 
 void OKXTradingSystem::placeOrder(const std::string& instId, const std::string& tdMode, const std::string& clOrdId,
@@ -106,7 +26,7 @@ void OKXTradingSystem::placeOrder(const std::string& instId, const std::string& 
                            "\"px\":\"" + px + "\","
                            "\"sz\":\"" + sz + "\"}";
 
-    std::string response = this->sendRequest(url, postData, "POST");
+    std::string response = sendRequest(url, postData, "POST", api_key, secret_key, passphrase);
     // std::cout << "Response received: " << response << std::endl;
 
     if (!response.empty()) {
@@ -146,7 +66,7 @@ void OKXTradingSystem::cancelOrder(const std::string& ordId, const std::string& 
     std::string url = "https://www.okx.com/api/v5/trade/cancel-order";
     std::string postData = "{\"ordId\":\"" + ordId + "\","
                             "\"instId\":\"" + instId + "\"}";
-    std::string response = this->sendRequest(url, postData, "POST");
+    std::string response = sendRequest(url, postData, "POST", api_key, secret_key, passphrase);
 
     if (!response.empty()) {
         try {
@@ -189,7 +109,7 @@ void OKXTradingSystem::modifyOrder(const std::string& ordId, double newSz, const
     std::string postData = "{\"ordId\":\"" + ordId + "\","
                             "\"newSz\":\"" + std::to_string(newSz) + "\","
                             "\"instId\":\"" + instId + "\"}";
-    std::string response = this->sendRequest(url, postData, "POST");
+    std::string response = sendRequest(url, postData, "POST", api_key, secret_key, passphrase);
 
     if (!response.empty()) {
         try {
@@ -231,7 +151,7 @@ void OKXTradingSystem::modifyOrder(const std::string& ordId, double newSz, const
 
 void OKXTradingSystem::getOrderBook(const std::string& instId) {
     std::string url = "https://www.okx.com/api/v5/market/books?instId=" + instId;
-    std::string response = this->sendRequest(url);
+    std::string response = sendRequest(url, "", "GET", api_key, secret_key, passphrase);
 
     if (!response.empty()) {
         try {
@@ -262,16 +182,16 @@ void OKXTradingSystem::getCurrentPositions(const std::optional<std::string>& ins
     // Add instId to the URL if it is provided
     if (instId.has_value()) {
         url += (queryStarted ? "&" : "?") + std::string("instId=") + instId.value();
-        queryStarted = true;  // Mark the query as started
+        queryStarted = true;
     }
     
     // Add instType to the URL if it is provided
     if (instType.has_value()) {
         url += (queryStarted ? "&" : "?") + std::string("instType=") + instType.value();
-        queryStarted = true;  // Mark the query as started
+        queryStarted = true;
     }
 
-    std::string response = this->sendRequest(url);
+    std::string response = sendRequest(url, "", "GET", api_key, secret_key, passphrase);
 
     if (!response.empty()) {
         try {

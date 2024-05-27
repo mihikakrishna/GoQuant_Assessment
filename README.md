@@ -23,7 +23,7 @@ sudo apt install g++ libcurl4-openssl-dev nlohmann-json3-dev libcrypto++-dev lib
 To compile the OKXTradingSystem manually, navigate to the directory containing the source files and run the following command:
 
 ```bash
-g++ -o OKXTradingSystem main.cpp OKXTradingSystem.cpp NetworkUtilities.cpp CryptoUtilities.cpp JsonUtilities.cpp -lcurl -lcrypto++ -lssl -lcrypto
+g++ -std=c++17 -Wall -Iinclude -o bin/OKXTradingSystem $(find src -name '*.cpp') -Llib -lcurl -lcrypto++ -lssl -lcrypto
 ```
 
 ### Using Makefile
@@ -37,5 +37,5 @@ make
 Once compiled, you can run the program by executing:
 
 ```bash
-./OKXTradingSystem
+./bin/OKXTradingSystem
 ```

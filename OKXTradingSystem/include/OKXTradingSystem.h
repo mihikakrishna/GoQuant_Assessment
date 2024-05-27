@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <optional>
+#include <nlohmann/json.hpp>
 
 class OKXTradingSystem
 {
@@ -21,7 +22,13 @@ private:
     std::string api_key;
     std::string secret_key;
     std::string passphrase;
-    std::string sign(const std::string &timestamp, const std::string &method, const std::string &requestPath, const std::string &body);
+    nlohmann::json parseResponse(const std::string& response);
+    void handlePlaceOrderResponse(const nlohmann::json& jsonResponse);
+    void handleCancellationResponse(const nlohmann::json& jsonResponse);
+    void handleModificationResponse(const nlohmann::json& jsonResponse);
+    void displayOrderBook(const nlohmann::json& jsonResponse);
+    void displayCurrentPositions(const nlohmann::json& jsonResponse);
+
 };
 
 #endif // OKX_TRADING_SYSTEM_H

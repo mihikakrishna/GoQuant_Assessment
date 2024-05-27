@@ -129,13 +129,24 @@ void OKXTradingSystem::handleCancellationResponse(const nlohmann::json &jsonResp
     }
 }
 
-void OKXTradingSystem::modifyOrder(const std::string &ordId, double newSz, const std::string &instId)
+void OKXTradingSystem::modifyOrder(const std::string &ordId, const std::optional<double> &newSz, const std::optional<double> &newPx, const std::string &instId)
 {
     std::string url = "https://www.okx.com/api/v5/trade/amend-order";
     nlohmann::json orderDetails = {
         {"ordId", ordId},
-        {"newSz", std::to_string(newSz)},
-        {"instId", instId}};
+        {"instId", instId}
+    };
+
+    // Add new size to JSON if provided
+    if (newSz.has_value()) {
+        orderDetails["newSz"] = std::to_string(newSz.value());
+    }
+
+    // Add new price to JSON if provided
+    if (newPx.has_value()) {
+        orderDetails["newPx"] = std::to_string(newPx.value());
+    }
+
     std::string postData = orderDetails.dump();
     std::string response = sendRequest(url, postData, "POST", api_key, secret_key, passphrase);
 
@@ -158,6 +169,7 @@ void OKXTradingSystem::modifyOrder(const std::string &ordId, double newSz, const
         throw std::runtime_error("Empty response from server.");
     }
 }
+
 
 void OKXTradingSystem::handleModificationResponse(const nlohmann::json &jsonResponse)
 {

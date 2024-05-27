@@ -76,9 +76,14 @@ void cancelOrder(OKXTradingSystem &system)
 void modifyOrder(OKXTradingSystem &system)
 {
     std::string ordId = getUserInput("Enter Order ID: ");
-    std::string newPrice = getUserInput("Enter New Price: ");
     std::string instId = getUserInput("Enter Instrument ID (e.g., BTC-USDT): ");
-    system.modifyOrder(ordId, std::stod(newPrice), instId);
+    std::string szInput = getUserInput("Enter New Size (leave blank if not changing): ");
+    std::string pxInput = getUserInput("Enter New Price (leave blank if not changing): ");
+
+    std::optional<double> newSz = szInput.empty() ? std::nullopt : std::optional<double>(std::stod(szInput));
+    std::optional<double> newPx = pxInput.empty() ? std::nullopt : std::optional<double>(std::stod(pxInput));
+    
+    system.modifyOrder(ordId, newSz, newPx, instId);
 }
 
 void getOrderBook(OKXTradingSystem &system)

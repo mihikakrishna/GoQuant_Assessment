@@ -3,8 +3,7 @@ CFLAGS=-std=c++17 -Wall
 LIBS=-lcurl -lcrypto++ -lssl -lcrypto
 
 # Define the source files and object files
-SOURCES=OKXTradingSystem.cpp CryptoUtilities.cpp
-# SOURCES=main.cpp OKXTradingSystem.cpp CryptoUtilities.cpp NetworkUtilities.cpp TimeUtilities.cpp JsonUtilities.cpp
+SOURCES=main.cpp OKXTradingSystem.cpp CryptoUtilities.cpp NetworkUtilities.cpp
 OBJECTS=$(SOURCES:.cpp=.o)
 EXECUTABLE=OKXTradingSystem
 

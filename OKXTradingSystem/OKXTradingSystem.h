@@ -18,8 +18,10 @@ private:
     std::string api_key;
     std::string secret_key;
     std::string passphrase;
-    std::string sendRequest(const std::string& url, const std::string& postData = "", const std::string& method = "GET");
     static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp);
+    std::string sendRequest(const std::string& url, const std::string& postData = "", const std::string& method = "GET");
+    std::string generateTimestamp();
+    std::string sign(const std::string &timestamp, const std::string &method, const std::string &requestPath, const std::string &body);
 };
 
 #endif // OKX_TRADING_SYSTEM_H

@@ -9,9 +9,10 @@
 #include <openssl/bio.h>
 #include <openssl/buffer.h>
 
-std::string encodeBase64(const unsigned char* buffer, size_t length) {
-    BIO* bio, * b64;
-    BUF_MEM* bufferPtr;
+std::string encodeBase64(const unsigned char *buffer, size_t length)
+{
+    BIO *bio, *b64;
+    BUF_MEM *bufferPtr;
     b64 = BIO_new(BIO_f_base64());
     bio = BIO_new(BIO_s_mem());
     bio = BIO_push(b64, bio);
@@ -27,7 +28,8 @@ std::string encodeBase64(const unsigned char* buffer, size_t length) {
     return output;
 }
 
-std::string hmac_sha256(const std::string &data, const std::string &key) {
-    unsigned char* hash = HMAC(EVP_sha256(), key.c_str(), key.length(), (const unsigned char*)data.c_str(), data.length(), NULL, NULL);
+std::string hmac_sha256(const std::string &data, const std::string &key)
+{
+    unsigned char *hash = HMAC(EVP_sha256(), key.c_str(), key.length(), (const unsigned char *)data.c_str(), data.length(), NULL, NULL);
     return encodeBase64(hash, 32); // 32 bytes = 256 bits
 }

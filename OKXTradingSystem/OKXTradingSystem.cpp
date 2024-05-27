@@ -171,12 +171,47 @@ void OKXTradingSystem::placeOrder(const std::string& instId, const std::string& 
 }
 
 
+
 void OKXTradingSystem::cancelOrder(const std::string& ordId, const std::string& instId) {
     std::string url = "https://www.okx.com/api/v5/trade/cancel-order";
     std::string postData = "{\"ordId\":\"" + ordId + "\","
                             "\"instId\":\"" + instId + "\"}";
     std::string response = this->sendRequest(url, postData, "POST");
-    // Add more code 
+
+    if (!response.empty()) {
+        try {
+            auto jsonResponse = nlohmann::json::parse(response);
+
+            if (jsonResponse.contains("data") && jsonResponse["data"].is_array() && !jsonResponse["data"].empty()) {
+                auto firstElement = jsonResponse["data"][0];
+                std::string sCode = firstElement.value("sCode", "");
+
+                if (sCode != "0") {
+                    std::string sMsg = firstElement.value("sMsg", "Unknown error");
+                    std::cerr << "Error cancelling order: " << sMsg << std::endl;
+                    throw std::runtime_error("Error cancelling order: " + sMsg);
+                } else {
+                    std::cout << "Order cancelled successfully." << std::endl;
+                }
+            } else {
+                std::string errorMsg = jsonResponse.value("msg", "");
+                if (!errorMsg.empty()) {
+                    std::cerr << "Error cancelling order: " << errorMsg << std::endl;
+                    throw std::runtime_error("Error cancelling order: " + errorMsg);
+                } else {
+                    std::cerr << "Unexpected response structure." << std::endl;
+                    throw std::runtime_error("Unexpected response structure.");
+                }
+            }
+        } catch (nlohmann::json::parse_error& e) {
+            std::cerr << "JSON parse error: " << e.what() << '\n';
+            std::cerr << "Raw response: " << response << '\n';
+            throw;
+        }
+    } else {
+        std::cerr << "Received empty response from server." << std::endl;
+        throw std::runtime_error("Empty response from server.");
+    }
 }
 
 void OKXTradingSystem::modifyOrder(const std::string& ordId, double newPrice) {
@@ -200,13 +235,8 @@ void OKXTradingSystem::getCurrentPositions(const std::string& symbol) {
 
 int main() {
     OKXTradingSystem system("be7ab88e-443b-43d0-a0c7-016d9a98c9cc", "E085D4AB76DF1F43833D328B52AEEDB3", "GoQuantIsAwesome100!");
-    std::string instId = "BTC-USDT";     
-    std::string tdMode = "cash";         
-    std::string clOrdId = "order_id_123";  
-    std::string side = "buy";             
-    std::string ordType = "limit";        
-    std::string px = "1000";              
-    std::string sz = "0.01";
-    system.placeOrder(instId, tdMode, clOrdId, side, ordType, px, sz);
+    std::string instId = "BTC-USDT";             
+    std::string ordId = "1485901533838151680";  
+    system.cancelOrder(ordId, instId);
     return 0;
 }

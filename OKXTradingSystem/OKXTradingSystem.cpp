@@ -214,11 +214,49 @@ void OKXTradingSystem::cancelOrder(const std::string& ordId, const std::string& 
     }
 }
 
-void OKXTradingSystem::modifyOrder(const std::string& ordId, double newPrice) {
+void OKXTradingSystem::modifyOrder(const std::string& ordId, double newSz, const std::string& instId) {
     std::string url = "https://www.okx.com/api/v5/trade/amend-order";
-    std::string postData = "order_id=" + ordId + "&new_price=" + std::to_string(newPrice);
+    std::string postData = "{\"ordId\":\"" + ordId + "\","
+                            "\"newSz\":\"" + std::to_string(newSz) + "\","
+                            "\"instId\":\"" + instId + "\"}";
     std::string response = this->sendRequest(url, postData, "POST");
-    // Add more code 
+
+    if (!response.empty()) {
+        try {
+            auto jsonResponse = nlohmann::json::parse(response);
+
+            // Check for the existence of a 'data' array and that it is not empty
+            if (jsonResponse.contains("data") && jsonResponse["data"].is_array() && !jsonResponse["data"].empty()) {
+                auto firstElement = jsonResponse["data"][0];
+                std::string sCode = firstElement.value("sCode", "");
+
+                if (sCode != "0") {
+                    std::string sMsg = firstElement.value("sMsg", "Unknown error");
+                    std::cerr << "Error modifying order: " << sMsg << std::endl;
+                    throw std::runtime_error("Error modifying order: " + sMsg);
+                } else {
+                    std::cout << "Order modified successfully." << std::endl;
+                }
+            } else {
+                // Check for a global error message if no 'data' array is present
+                std::string errorMsg = jsonResponse.value("msg", "");
+                if (!errorMsg.empty()) {
+                    std::cerr << "Error modifying order: " << errorMsg << std::endl;
+                    throw std::runtime_error("Error modifying order: " + errorMsg);
+                } else {
+                    std::cerr << "Unexpected response structure." << std::endl;
+                    throw std::runtime_error("Unexpected response structure.");
+                }
+            }
+        } catch (nlohmann::json::parse_error& e) {
+            std::cerr << "JSON parse error: " << e.what() << '\n';
+            std::cerr << "Raw response: " << response << '\n';
+            throw;
+        }
+    } else {
+        std::cerr << "Received empty response from server." << std::endl;
+        throw std::runtime_error("Empty response from server.");
+    }
 }
 
 void OKXTradingSystem::getOrderBook(const std::string& sprdId) {
@@ -235,8 +273,75 @@ void OKXTradingSystem::getCurrentPositions(const std::string& symbol) {
 
 int main() {
     OKXTradingSystem system("be7ab88e-443b-43d0-a0c7-016d9a98c9cc", "E085D4AB76DF1F43833D328B52AEEDB3", "GoQuantIsAwesome100!");
-    std::string instId = "BTC-USDT";             
-    std::string ordId = "1485901533838151680";  
-    system.cancelOrder(ordId, instId);
+    
+    std::string input, instId, ordId, tdMode, side, ordType, px, sz, sprdId, symbol;
+    double newPrice;
+    int choice;
+
+    while (true) {
+        std::cout << "\nChoose an operation:\n"
+                  << "1. Place Order\n"
+                  << "2. Cancel Order\n"
+                  << "3. Modify Order\n"
+                  << "4. Get Order Book\n"
+                  << "5. Get Current Positions\n"
+                  << "6. Exit\n"
+                  << "Enter choice (1-6): ";
+        std::getline(std::cin, input);
+        choice = std::stoi(input);
+
+        switch (choice) {
+            case 1:
+                std::cout << "Enter Instrument ID (e.g., BTC-USDT): ";
+                std::getline(std::cin, instId);
+                std::cout << "Enter Trade Mode (e.g., cash): ";
+                std::getline(std::cin, tdMode);
+                std::cout << "Enter Client Order ID (unique): ";
+                std::getline(std::cin, ordId);
+                std::cout << "Enter Side (buy/sell): ";
+                std::getline(std::cin, side);
+                std::cout << "Enter Order Type (e.g., limit): ";
+                std::getline(std::cin, ordType);
+                std::cout << "Enter Price: ";
+                std::getline(std::cin, px);
+                std::cout << "Enter Size: ";
+                std::getline(std::cin, sz);
+                system.placeOrder(instId, tdMode, ordId, side, ordType, px, sz);
+                break;
+            case 2:
+                std::cout << "Enter Instrument ID: ";
+                std::getline(std::cin, instId);
+                std::cout << "Enter Order ID: ";
+                std::getline(std::cin, ordId);
+                system.cancelOrder(ordId, instId);
+                break;
+            case 3:
+                std::cout << "Enter Order ID: ";
+                std::getline(std::cin, ordId);
+                std::cout << "Enter New Price: ";
+                std::getline(std::cin, input);
+                newPrice = std::stod(input);
+                std::cout << "Enter Instrument ID (e.g., BTC-USDT): ";
+                std::getline(std::cin, instId);
+                system.modifyOrder(ordId, newPrice, instId);
+                break;
+            case 4:
+                std::cout << "Enter Spread ID: ";
+                std::getline(std::cin, sprdId);
+                system.getOrderBook(sprdId);
+                break;
+            case 5:
+                std::cout << "Enter Symbol: ";
+                std::getline(std::cin, symbol);
+                system.getCurrentPositions(symbol);
+                break;
+            case 6:
+                std::cout << "Exiting program.\n";
+                return 0;
+            default:
+                std::cout << "Invalid choice. Please enter a number between 1 and 6.\n";
+        }
+    }
+
     return 0;
 }

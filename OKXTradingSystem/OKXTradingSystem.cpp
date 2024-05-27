@@ -15,6 +15,7 @@
 #include <openssl/evp.h>
 #include <openssl/bio.h>
 #include <openssl/buffer.h>
+#include <cstdlib>
 
 OKXTradingSystem::OKXTradingSystem(const std::string& api_key, const std::string& secret_key, const std::string& passphrase)
 : api_key(api_key), secret_key(secret_key), passphrase(passphrase) {}
@@ -259,22 +260,75 @@ void OKXTradingSystem::modifyOrder(const std::string& ordId, double newSz, const
     }
 }
 
-void OKXTradingSystem::getOrderBook(const std::string& sprdId) {
-    std::string url = "https://www.okx.com/api/v5/market/books?symbol=" + sprdId;
+void OKXTradingSystem::getOrderBook(const std::string& instId) {
+    std::string url = "https://www.okx.com/api/v5/market/books?instId=" + instId;
     std::string response = this->sendRequest(url);
-    // Add more code 
+
+    if (!response.empty()) {
+        try {
+            auto jsonResponse = nlohmann::json::parse(response);
+            if (jsonResponse.contains("code") && jsonResponse["code"] == "0") {
+                auto orderBook = jsonResponse["data"];  // Assume 'data' holds the order book
+                std::cout << "Order Book: " << orderBook.dump(4) << std::endl;
+            } else {
+                std::string errorMsg = jsonResponse.value("msg", "Unknown error");
+                std::cerr << "Error retrieving order book: " << errorMsg << std::endl;
+                throw std::runtime_error("Error retrieving order book: " + errorMsg);
+            }
+        } catch (nlohmann::json::parse_error& e) {
+            std::cerr << "JSON parse error: " << e.what() << '\n';
+            throw;
+        }
+    } else {
+        std::cerr << "Received empty response from server." << std::endl;
+        throw std::runtime_error("Empty response from server.");
+    }
 }
 
-void OKXTradingSystem::getCurrentPositions(const std::string& symbol) {
-    std::string url = "https://www.okx.com/api/v5/account/positions?symbol=" + symbol;
+void OKXTradingSystem::getCurrentPositions(const std::optional<std::string>& instId, const std::optional<std::string>& instType) {    
+    std::string url = "https://www.okx.com/api/v5/account/positions";
+    
+    bool queryStarted = false;
+
+    // Add instId to the URL if it is provided
+    if (instId.has_value()) {
+        url += (queryStarted ? "&" : "?") + std::string("instId=") + instId.value();
+        queryStarted = true;  // Mark the query as started
+    }
+    
+    // Add instType to the URL if it is provided
+    if (instType.has_value()) {
+        url += (queryStarted ? "&" : "?") + std::string("instType=") + instType.value();
+        queryStarted = true;  // Mark the query as started
+    }
+
     std::string response = this->sendRequest(url);
-    // Add more code 
+
+    if (!response.empty()) {
+        try {
+            auto jsonResponse = nlohmann::json::parse(response);
+            if (jsonResponse.contains("code") && jsonResponse["code"] == "0") {
+                auto positions = jsonResponse["data"];  // Assume 'data' holds the positions
+                std::cout << "Current Positions: " << positions.dump(4) << std::endl;
+            } else {
+                std::string errorMsg = jsonResponse.value("msg", "Unknown error");
+                std::cerr << "Error retrieving positions: " << errorMsg << std::endl;
+                throw std::runtime_error("Error retrieving positions: " + errorMsg);
+            }
+        } catch (nlohmann::json::parse_error& e) {
+            std::cerr << "JSON parse error: " << e.what() << '\n';
+            throw;
+        }
+    } else {
+        std::cerr << "Received empty response from server." << std::endl;
+        throw std::runtime_error("Empty response from server.");
+    }
 }
 
 int main() {
     OKXTradingSystem system("be7ab88e-443b-43d0-a0c7-016d9a98c9cc", "E085D4AB76DF1F43833D328B52AEEDB3", "GoQuantIsAwesome100!");
     
-    std::string input, instId, ordId, tdMode, side, ordType, px, sz, sprdId, symbol;
+    std::string input, instId, ordId, tdMode, side, ordType, px, sz, symbol, instType;
     double newPrice;
     int choice;
 
@@ -291,7 +345,7 @@ int main() {
         choice = std::stoi(input);
 
         switch (choice) {
-            case 1:
+            case 1: {
                 std::cout << "Enter Instrument ID (e.g., BTC-USDT): ";
                 std::getline(std::cin, instId);
                 std::cout << "Enter Trade Mode (e.g., cash): ";
@@ -308,14 +362,16 @@ int main() {
                 std::getline(std::cin, sz);
                 system.placeOrder(instId, tdMode, ordId, side, ordType, px, sz);
                 break;
-            case 2:
+            }
+            case 2: {
                 std::cout << "Enter Instrument ID: ";
                 std::getline(std::cin, instId);
                 std::cout << "Enter Order ID: ";
                 std::getline(std::cin, ordId);
                 system.cancelOrder(ordId, instId);
                 break;
-            case 3:
+            }
+            case 3: {
                 std::cout << "Enter Order ID: ";
                 std::getline(std::cin, ordId);
                 std::cout << "Enter New Price: ";
@@ -325,23 +381,33 @@ int main() {
                 std::getline(std::cin, instId);
                 system.modifyOrder(ordId, newPrice, instId);
                 break;
-            case 4:
-                std::cout << "Enter Spread ID: ";
-                std::getline(std::cin, sprdId);
-                system.getOrderBook(sprdId);
+            }
+            case 4: {
+                std::cout << "Enter Instrument ID (e.g., BTC-USDT): ";
+                std::getline(std::cin, instId);
+                system.getOrderBook(instId);
                 break;
-            case 5:
-                std::cout << "Enter Symbol: ";
-                std::getline(std::cin, symbol);
-                system.getCurrentPositions(symbol);
+            }
+            case 5: {
+                std::cout << "Enter Instrument ID (optional, e.g., BTC-USDT): ";
+                std::getline(std::cin, instId);
+                std::optional<std::string> optInstId = instId.empty() ? std::nullopt : std::optional<std::string>(instId);
+                
+                std::cout << "Enter Instrument Type (optional, e.g., MARGIN, SWAP): ";
+                std::getline(std::cin, instType);
+                std::optional<std::string> optInstType = instType.empty() ? std::nullopt : std::optional<std::string>(instType);
+                
+                system.getCurrentPositions(optInstId, optInstType);
                 break;
-            case 6:
+            }
+            case 6: {
                 std::cout << "Exiting program.\n";
                 return 0;
-            default:
+            }
+            default: {
                 std::cout << "Invalid choice. Please enter a number between 1 and 6.\n";
+                break;
+            }
         }
     }
-
-    return 0;
 }

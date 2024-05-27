@@ -2,6 +2,8 @@
 #define OKX_TRADING_SYSTEM_H
 
 #include <string>
+#include <vector>
+#include <optional> 
 
 class OKXTradingSystem {
 public:
@@ -11,8 +13,8 @@ public:
                     const std::string& sz);
     void cancelOrder(const std::string& ordId, const std::string& instId);
     void modifyOrder(const std::string& orderID, double newSz, const std::string& instId);
-    void getOrderBook(const std::string& symbol);
-    void getCurrentPositions(const std::string& symbol);
+    void getOrderBook(const std::string& instId);
+    void getCurrentPositions(const std::optional<std::string>& instId, const std::optional<std::string>& instType = std::nullopt);
 
 private:
     std::string api_key;

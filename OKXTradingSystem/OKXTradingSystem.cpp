@@ -1,4 +1,5 @@
 #include "OKXTradingSystem.h"
+#include "CryptoUtilities.h"
 #include <curl/curl.h>
 #include <nlohmann/json.hpp>
 #include <iostream>
@@ -6,15 +7,6 @@
 #include <sstream>
 #include <iomanip>
 #include <ctime>
-#include <crypto++/sha.h>
-#include <crypto++/hmac.h>
-#include <crypto++/base64.h>
-#include <crypto++/filters.h>
-#include <crypto++/hex.h>
-#include <openssl/hmac.h>
-#include <openssl/evp.h>
-#include <openssl/bio.h>
-#include <openssl/buffer.h>
 #include <cstdlib>
 
 OKXTradingSystem::OKXTradingSystem(const std::string& api_key, const std::string& secret_key, const std::string& passphrase)
@@ -23,29 +15,6 @@ OKXTradingSystem::OKXTradingSystem(const std::string& api_key, const std::string
 size_t OKXTradingSystem::WriteCallback(void *contents, size_t size, size_t nmemb, void *userp) {
     ((std::string*)userp)->append((char*)contents, size * nmemb);
     return size * nmemb;
-}
-
-std::string encodeBase64(const unsigned char* buffer, size_t length) {
-    BIO* bio, * b64;
-    BUF_MEM* bufferPtr;
-    b64 = BIO_new(BIO_f_base64());
-    bio = BIO_new(BIO_s_mem());
-    bio = BIO_push(b64, bio);
-
-    BIO_write(bio, buffer, length);
-    BIO_flush(bio);
-    BIO_get_mem_ptr(bio, &bufferPtr);
-    BIO_set_close(bio, BIO_NOCLOSE);
-    BIO_free_all(bio);
-
-    std::string output(bufferPtr->data, bufferPtr->length);
-    BUF_MEM_free(bufferPtr);
-    return output;
-}
-
-std::string hmac_sha256(const std::string &data, const std::string &key) {
-    unsigned char* hash = HMAC(EVP_sha256(), key.c_str(), key.length(), (const unsigned char*)data.c_str(), data.length(), NULL, NULL);
-    return encodeBase64(hash, 32); // 32 bytes = 256 bits
 }
 
 std::string get_iso8601_timestamp() {
